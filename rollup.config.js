@@ -9,8 +9,47 @@ import colors from "kleur";
 import { terser } from "rollup-plugin-terser";
 import config from "sapper/config/rollup";
 import pkg from "./package.json";
+import hljs from "highlight.js";
 
-const { createPreprocessors } = require("./svelte.config.js");
+
+// import { mdsvex } from "mdsvex";
+const {markdown, Renderer} = require('svelte-preprocess-markdown');
+const renderer = Renderer();
+
+const sveltePreprocess = require("svelte-preprocess");
+const postcss = require("./postcss.config");
+
+// import image from "svelte-image";
+renderer.heading = (text, level) => {
+		const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
+		return `
+				<section>
+				<h${level}>
+				<a name="${escapedText}" class="anchor" href="#${escapedText}">
+					<span class="header-link"></span>
+				</a>
+				${text}
+				</h${level}>
+				</section>`;
+};
+
+
+const createPreprocessors = ({ sourceMap }) => [
+	sveltePreprocess({
+		sourceMap,
+		defaults: {
+			style: "postcss",
+		},
+		postcss,
+	}),
+	markdown({
+		highlight: (code, lang) => {
+			// console.log(lang);
+			return hljs.highlight(lang, code).value;
+		},
+		renderer,
+	})
+];
 
 const mode = process.env.NODE_ENV;
 const dev = mode === "development";
@@ -25,6 +64,7 @@ const globalCSSWatchFiles = ["postcss.config.js", "tailwind.config.js", "src/glo
 // Workaround for https://github.com/sveltejs/sapper/issues/1266
 const onwarn = (warning, _onwarn) => (warning.code === "CIRCULAR_DEPENDENCY" && /[/\\]@sapper[/\\]/.test(warning.message)) || console.warn(warning.toString());
 
+const extensions = [".svelte", ".md"];
 export default {
 	client: {
 		input: config.client.input(),
@@ -35,12 +75,14 @@ export default {
 				"process.env.NODE_ENV": JSON.stringify(mode),
 			}),
 			svelte({
+				extensions,
 				compilerOptions: {
 					dev,
 					hydratable: true,
 				},
 				emitCss: true,
-				preprocess,
+				preprocess
+				// preprocess: [mdsvex(), preprocess]
 			}),
 			resolve({
 				browser: true,
@@ -51,7 +93,7 @@ export default {
 			}),
 
 			legacy && babel({
-				extensions: [".js", ".mjs", ".html", ".svelte"],
+				extensions: [".js", ".mjs", ".html", ...extensions],
 				babelHelpers: "runtime",
 				exclude: ["node_modules/@babel/**"],
 				presets: [
@@ -138,11 +180,13 @@ export default {
 				"process.env.NODE_ENV": JSON.stringify(mode),
 			}),
 			svelte({
+				extensions,
 				compilerOptions: {
 					dev,
 					generate: "ssr",
 				},
-				preprocess,
+				preprocess
+				// preprocess: [mdsvex(), preprocess]
 			}),
 			resolve({
 				dedupe: ["svelte"],
