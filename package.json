@@ -30,7 +30,7 @@
     "@tailwindcss/typography": "^0.3.1",
     "@untemps/svelte-readotron": "^1.2.0",
     "compression": "^1.7.4",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "mathjax": "^3.1.2",
     "sirv": "^1.0.10",
     "smelte": "^1.0.18",
